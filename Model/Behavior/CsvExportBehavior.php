@@ -80,6 +80,7 @@ class CsvExportBehavior extends ModelBehavior {
 
 	public function arrayToCSV(Model &$Model, $records){
 		if ( !empty($records ) ) {
+			$this->squashRelatedModels($Model, $records);
 			$this->ensureTmp();
 
 			$tmpFilename = TMP . $this->tmpDir . DS .  strtolower( Inflector::pluralize($Model->alias) ) . '-' . date('Ymd-Hms') . '.csv';
@@ -104,6 +105,30 @@ class CsvExportBehavior extends ModelBehavior {
 			return $data;
 		}
 		return false;
+	}
+
+
+	/**
+	 * example: if you have joined records like $user['User']['desc'] and $user['RelatedModel']['field'],
+	 *  then this squashes all fields for RelatedModel into the User key,
+	 *  eg. $user['User']['RelatedModel.field'], then unsets the RelatedModel key,
+	 *  so we can export it all as a flat CSV.
+	 * @param  array $records An array of records
+	 * @return void          (records are passed by reference and modified directly)
+	 */
+	private function squashRelatedModels(Model &$Model, &$records){
+		foreach($records as &$rowCollection){
+			foreach($rowCollection as $relatedAlias => &$modelRow){
+				if($relatedAlias != $Model->alias){
+					foreach($modelRow as $fieldName => &$fieldValue){
+						//
+						$rowCollection[$Model->alias][$relatedAlias.'.'.$fieldName] = $fieldValue;
+					}
+					unset($rowCollection[$relatedAlias]);
+				}
+			}
+		}
+
 	}
 
 /**
