@@ -113,6 +113,8 @@ class CsvExportBehavior extends ModelBehavior {
 	 *  then this squashes all fields for RelatedModel into the User key,
 	 *  eg. $user['User']['RelatedModel.field'], then unsets the RelatedModel key,
 	 *  so we can export it all as a flat CSV.
+	 *  Squashes 1 level only - nested associations will be converted into a json array.
+	 *  If you need deeper than 1 level, use joins rather than containable behaviour
 	 * @param  array $records An array of records
 	 * @return void          (records are passed by reference and modified directly)
 	 */
@@ -121,8 +123,11 @@ class CsvExportBehavior extends ModelBehavior {
 			foreach($rowCollection as $relatedAlias => &$modelRow){
 				if($relatedAlias != $Model->alias){
 					foreach($modelRow as $fieldName => &$fieldValue){
-						//
-						$rowCollection[$Model->alias][$relatedAlias.'.'.$fieldName] = $fieldValue;
+						if(is_array($fieldValue)){
+							$rowCollection[$Model->alias][$relatedAlias.'.'.$fieldName] = json_encode($fieldValue);
+						} else {
+							$rowCollection[$Model->alias][$relatedAlias.'.'.$fieldName] = $fieldValue;
+						}
 					}
 					unset($rowCollection[$relatedAlias]);
 				}
